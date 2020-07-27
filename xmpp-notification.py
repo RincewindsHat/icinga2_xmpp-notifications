@@ -1,90 +1,159 @@
-#!/usr/bin/python2
-import sys,os,xmpp,time
+#!/usr/bin/env python3
+import sys
+import os
+import sleekxmpp
+import time
 import argparse
 
 parser = argparse.ArgumentParser(description="Sending XMPP Messages")
 
-parser.add_argument('-r', '--recipient', 
-                type=str, 
-                nargs='+', 
-                help="The JID of the recipient",
-                required=True)
+def usage():
+    print("XMPP Notification sender for icinga2\n\n" +
+            "Usage:\n" +
+            "xmpp-notification.py\n" +
+            "   -h | --help   Prints this help\n" +
+            "   -r | --recipient    JID of the recipient"
+            )
+        
 
-parser.add_argument('-f', '--sender',
-                type=str,
-                nargs=1,
-                help="The sender address and XMPP JID",
-                required=True)
 
-parser.add_argument('-p', '--password',
-                type=str,
-                nargs=1,
-                help="XMPP login password")
+class SendMsgBot(sleekxmpp.ClientXMPP):
 
-parser.add_argument('-d', '--notification_date',
-                type=str,
-                nargs=1,
-                help="The date of the notification")
+    def __init__(self, recipient, msg, sender_jid, password):
+        super(SendMsgBot, self).__init__(jid, password)
 
-parser.add_argument('-N', '--notification_hostname',
-                type=str,
-                nargs=1,
-                help="The problematic host",
-                required=True)
+        self.recipient = recipient
+        self.msg = msg
 
-parser.add_argument('-e','--servicename',
-                type=str,
-                nargs=1,
-                help="Name of the service")
+        # Service Discovery
+        self.register_plugin('xep_0030')
+        # XMPP Ping
+        self.register_plugin('xep_0199')
 
-parser.add_argument('-o', '--serviceoutput',
-                type=str,
-                nargs=1,
-                help="Result of the service check")
+        self.add_event_handler('session_start', self.start)
 
-parser.add_argument('-s', '--servicestate',
-                type=str, 
-                nargs=1,
-                help="State of the service")
-parser.add_argument('-n', '--hostdisplayname',
-                type=str,
-                nargs=1,
-                help="Name of the host")
-parser.add_argument('-t', '--notification_type',
-                nargs=1,
-                help="Type of notification")
-parser.add_argument('-u', '--servicedisplayname',
-                type=str,
-                nargs=1,
-                help="Nice name of the service")
-#parser.add_argument('-a', '--notification_author', type=str, nargs=1, help="The service sending this")
+        # my server demands tls1.2. without it, protocol unsupported
+        self.ssl_version = ssl.PROTOCOL_TLSv1_2
 
-args = parser.parse_args()
+    def start(self, event):
+        self.send_presence()
+        self.get_roster()
+        self.send_message(mto=self.recipient, mbody=self.msg, mtype='chat')
+        # Using wait=True ensures that the send queue will be
+        # emptied before ending the session.
+        self.disconnect(wait=True)
 
-jidparams={'jid':args.sender[0], 'password':args.password[0]}
-text = "{0} {1}: {2} {3}".format(args.servicestate[0],
-                args.servicename[0],
-                args.notification_hostname[0],
-                args.serviceoutput[0])
+if __name__ == "__main__":
+    # Always necesary
 
-jid=xmpp.protocol.JID(jidparams['jid'])
-cl=xmpp.Client(jid.getDomain(),debug=[])
+    parser.add_argument('-r', '--recipient', 
+                        type=str, 
+                        help="The JID(s) of the recipient(s)",
+                        nargs=1,
+                        action='append',
+                        required=True)
 
-con=cl.connect()
-if not con:
-    sys.exit()
+    parser.add_argument('-f', '--sender',
+                        type=str,
+                        nargs=1,
+                        help="The sender address and XMPP JID",
+                        required=True)
 
-auth=cl.auth(jid.getNode(),jidparams['password'],resource=jid.getResource())
-if not auth:
-    sys.exit()
+    parser.add_argument('-p', '--password',
+                        type=str,
+                        nargs=1,
+                        help="XMPP login password",
+                        required=True)
 
-#cl.SendInitPresence(requestRoster=0)   # you may need to uncomment this for old server
+    parser.add_argument('-d', '--notification_date',
+                        type=str,
+                        nargs=1,
+                        help="The date of the notification",
+                        required=True)
 
-for i in args.recipient:
-        message = xmpp.protocol.Message(i, text)
-        message.setAttr('type', 'chat')
-        id=cl.send(message)
+    parser.add_argument('-N', '--host',
+                        type=str,
+                        nargs=1,
+                        help="The respective host",
+                        required=True)
 
-#time.sleep(1)   # some older servers will not send the message if you disconnect immediately after sending
+    parser.add_argument('-n', '--hostdisplayname',
+                        type=str,
+                        nargs='*',
+                        help="Name of the host")
 
-cl.disconnect()
+    parser.add_argument('-t', '--notification_type',
+                        nargs=1,
+                        help="Type of notification",
+                        required=True)
+
+    parser.add_argument('-a', '--notification_author',
+                        type=str,
+                        nargs='*',
+                        help="The service sending this")
+
+    if sys.argv[1] == "--host":
+        # Host notification
+        parser.add_argument('-h', '--hoststate',
+                            type=str, 
+                            nargs=1,
+                            help="State of the service")
+
+    elif sys.argv[1] == "--service":
+        parser.add_argument('-e','--servicename',
+                            type=str,
+                            nargs='*',
+                            help="Name of the service in question")
+
+        parser.add_argument('-o', '--serviceoutput',
+                            type=str,
+                            nargs='*',
+                            help="Result of the service check")
+
+        parser.add_argument('-s', '--servicestate',
+                            type=str, 
+                            nargs=1,
+                            help="State of the service")
+
+
+        parser.add_argument('-u', '--servicedisplayname',
+                            type=str,
+                            nargs='*',
+                            help="Display name of the service")
+    else:
+        usage()
+        sys.exit(2)
+        
+    args = parser.parse_args()
+
+    if args.servicename:
+        # Service notification
+        if args.servicedisplayname:
+            service = args.servicedisplayname[0]
+        else:
+            service = args.servicename[0]
+
+        text = "{0} {1}: {2} {3}".format(args.servicestate[0],
+                                        service,
+                                        args.notification_hostname[0],
+                                        args.serviceoutput[0]
+                                        )
+    else:
+        # Host notification
+        if args.hostdisplayname[0]:
+            host = args.hostdisplayname[0]
+        else:
+            host = args.host[0]
+
+        text = "{0}: {1} is {3}".format(args.notification_type[0],
+                                        host,
+                                        args.hoststate[0]                                    
+                                        )
+
+    for i in args.recipient:
+        xmpp = SendMsgBot(i, text, args.sender[0], sys.password[0])
+        if xmpp.connect():
+            xmpp.process(block=True)
+        else:
+            print("Could not connect", file=sys.stderr)
+            sys.exit(1)
