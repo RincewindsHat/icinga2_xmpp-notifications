@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 import sys
-import os
 import sleekxmpp
-import time
 import argparse
 import ssl
 
-def usage():
-    pass
         
 class SendMsgBot(sleekxmpp.ClientXMPP):
 
@@ -37,19 +33,10 @@ class SendMsgBot(sleekxmpp.ClientXMPP):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        usage()
-        exit(2)
 
     parser = argparse.ArgumentParser(description="Send XMPP Notifications")
 
     # Always necessary arguments
-
-    parser.add_argument('-m', '--mode',
-                              choices=['host', 'service'],
-                              help="Choose if this is a host or service notification",
-                              required=True)
-
     parser.add_argument('-r', '--recipient', 
                         type=str,
                         help="The JID(s) of the recipient(s)",
@@ -127,35 +114,38 @@ if __name__ == "__main__":
                         nargs=1,
                         help="Display name of the service")
 
-    args = parser.parse_args(args.args)
+    args = parser.parse_args()
 
 
-    if args.mode == 'service':
+    # Hostname
+    if args.hostdisplayname is None:
+        host = args.host[0]
+    else:
+        host = args.hostdisplayname[0]
+
+    # Date
+    date = args.notification_date[0]
+
+    # State
+    state = args.state[0]
+
+    # Output
+    output = args.output[0]
+
+    if args.servicename :
         # Service notification
-        if args.servicename is None:
-            print("No servicename for a service notification")
-        if args.servicedisplayname is not None:
-            service = args.servicedisplayname[0]
-        else:
+        if args.servicedisplayname is None:
             service = args.servicename[0]
-
-        if args.hostdisplayname is not None:
-            host = args.hostdisplayname[0]
         else:
-            host = args.host[0]
+            service = args.servicedisplayname[0]
 
-        title = f"{service} on {host} is {servicestate[0]}"
-        text = f"{title}\nOutput: {ags.serviceoutput[0]}\nTime/Date: {args.notification_date}"
+        title = f"{service} on {host} is {state}"
+        text = f"{title}\nOutput: {output}\nTime/Date: {date}"
 
     else:
         # Host notification
-        if args.hostdisplayname is not None:
-            host = args.hostdisplayname[0]
-        else:
-            host = args.host[0]
-
-        title = f"Host {host} is {args.hoststate[0]}"
-        text = f"{title}:\nOutput: {args.hostoutput[0]}\nTime/Date: {args.notification_date}"
+        title = f"Host {host} is {args.state}"
+        text = f"{title}:\nOutput: {output}\nTime/Date: {date}"
 
     #print(args)
     for i in args.recipient:
