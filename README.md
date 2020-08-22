@@ -19,22 +19,22 @@ pip install sleekxmpp
 
 # Installation
 
-Copy 'xmpp-notification.py' to a location of your choosing (possibly
-'/etc/icinga2/scripts' besides the default the default mail scripts, but
+Copy `xmpp-notification.py` to a location of your choosing (possibly
+`/etc/icinga2/scripts` besides the default the default mail scripts, but
 any location might suffice.
 Remember to set the permissions correctly, so the icinga2 daemon is able
 to execute the script.
 
-Append the content of 'icinga2_conf/commands.conf' somewhere in your config
+Append the content of `icinga2_conf/commands.conf` somewhere in your config
 to define the command for icinga2. Set the path according to the location
 of the script.
 
-Append the content of 'icinga2_conf/templates.conf' somewhere in your config
+Append the content of `icinga2_conf/templates.conf` somewhere in your config
 to define the notification templates for icinga2.
 Set JID and the password for the XMPP-Account you want to send notifications here.
 
-Add the customvar 'userjid' with the JID you want to notify to the user you want
-to notify. A hint is in 'icinga2_conf/users.conf'.
+Add the customvar `userjid` with the JID you want to notify to the user you want
+to notify. A hint is in `icinga2_conf/users.conf`.
 
 # Caveats
 Since the JID and the password for the sending account are handed over via
