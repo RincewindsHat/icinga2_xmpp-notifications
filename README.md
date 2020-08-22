@@ -5,16 +5,16 @@ but without using enviroment variables (Director compatible) and different forma
 
 # Dependencies
 
-python3-sleekxmpp
+`python3-slixmpp` (since the previous `sleekxmpp` is deprecated)
 
 In debian:
 ```
-apt-get install python3-sleekxmpp
+apt-get install python3-slixmpp
 ```
 
 elsewhere probably:
 ```
-pip install sleekxmpp
+pip install slixmpp
 ```
 
 # Installation

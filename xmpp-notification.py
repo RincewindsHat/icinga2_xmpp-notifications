@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 import sys
-import sleekxmpp
+import slixmpp
 import argparse
 import ssl
 
         
-class SendMsgBot(sleekxmpp.ClientXMPP):
+class SendMsgBot(slixmpp.ClientXMPP):
 
     def __init__(self, recipient, msg, sender_jid, password):
-        super(SendMsgBot, self).__init__(sender_jid, password)
+        super().__init__(sender_jid, password)
 
         self.recipient = recipient
         self.msg = msg
@@ -20,13 +20,10 @@ class SendMsgBot(sleekxmpp.ClientXMPP):
 
         self.add_event_handler('session_start', self.start)
 
-        # my server demands tls1.2. without it, protocol unsupported
-        self.ssl_version = ssl.PROTOCOL_TLSv1_2
-
     def start(self, event):
         self.send_presence()
         self.get_roster()
-        self.send_message(mto=self.recipient, mbody=self.msg, mtype='chat')
+        self.send_message(mto=self.recipient, mbody=self.msg)
         # Using wait=True ensures that the send queue will be
         # emptied before ending the session.
         self.disconnect(wait=True)
@@ -150,8 +147,5 @@ if __name__ == "__main__":
     #print(args)
     for i in args.recipient:
         xmpp = SendMsgBot(recipient=i[0], msg=text, sender_jid=args.sender[0], password=args.password[0])
-        if xmpp.connect():
-            xmpp.process(block=True)
-        else:
-            print("Could not connect", file=sys.stderr)
-            sys.exit(1)
+        xmpp.connect()
+        xmpp.process(forever=False)
