@@ -136,7 +136,7 @@ if __name__ == "__main__":
         else:
             service = args.servicedisplayname[0]
 
-        title = f"{service} on {host} is {state}"
+        title = f"Service {service} on {host} is {state}"
         text = f"{title}\nOutput: {output}\nTime/Date: {date}"
 
     else:
