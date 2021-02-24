@@ -4,7 +4,7 @@ import slixmpp
 import argparse
 import ssl
 
-        
+
 class SendMsgBot(slixmpp.ClientXMPP):
 
     def __init__(self, recipient, msg, sender_jid, password):
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Send XMPP Notifications")
 
     # Always necessary arguments
-    parser.add_argument('-r', '--recipient', 
+    parser.add_argument('-r', '--recipient',
                         type=str,
                         help="The JID(s) of the recipient(s)",
                         nargs='+',
@@ -90,12 +90,12 @@ if __name__ == "__main__":
                         nargs=argparse.REMAINDER)
 
     parser.add_argument('-S', '--state',
-                        type=str, 
+                        type=str,
                         nargs=1,
                         required=True,
                         help="State of the host/service")
     parser.add_argument('-O', '--output',
-                        type=str, 
+                        type=str,
                         nargs=1,
                         required=True,
                         help="Output of the host/service check")
