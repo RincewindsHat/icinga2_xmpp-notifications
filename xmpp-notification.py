@@ -141,7 +141,7 @@ if __name__ == "__main__":
 
     else:
         # Host notification
-        title = f"Host {host} is {args.state}"
+        title = f"Host {host} is {state}"
         text = f"{title}:\nOutput: {output}\nTime/Date: {date}"
 
     #print(args)
