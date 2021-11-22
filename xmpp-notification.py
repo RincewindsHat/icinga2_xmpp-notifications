@@ -7,7 +7,7 @@ import ssl
 
 class SendMsgBot(slixmpp.ClientXMPP):
 
-    def __init__(self, recipient, msg, sender_jid, password):
+    def __init__(self, recipient, msg, sender_jid, password, muc):
         super().__init__(sender_jid, password)
 
         self.recipient = recipient
@@ -18,7 +18,22 @@ class SendMsgBot(slixmpp.ClientXMPP):
         # XMPP Ping
         self.register_plugin('xep_0199')
 
-        self.add_event_handler('session_start', self.start)
+        if muc:
+            self.register_plugin('xep_0045')
+            self.room = muc
+            self.add_event_handler('session_start', self.start_muc)
+        else:
+            self.add_event_handler('session_start', self.start)
+
+    def start_muc(self, event):
+        self.get_roster()
+        self.send_presence()
+        self.plugin['xep_0045'].join_muc(self.room, "icinga2")
+        self.send_message(mto=self.room, mbody=self.msg, mtype='groupchat')
+        # Using wait=True ensures that the send queue will be
+        # emptied before ending the session.
+        self.disconnect(wait=True)
+
 
     def start(self, event):
         self.send_presence()
@@ -34,13 +49,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Send XMPP Notifications")
 
     # Always necessary arguments
-    parser.add_argument('-r', '--recipient',
-                        type=str,
-                        help="The JID(s) of the recipient(s)",
-                        nargs='+',
-                        action='append',
-                        required=True)
-
     parser.add_argument('-f', '--sender',
                         type=str,
                         nargs=1,
@@ -76,6 +84,18 @@ if __name__ == "__main__":
                         required=True)
 
     # Optional
+    parser.add_argument('-r', '--recipient',
+                        type=str,
+                        help="The JID of a recipient (can be repeated)",
+                        nargs='+',
+                        action='append')
+
+    parser.add_argument('--muc',
+                        type=str,
+                        nargs='+',
+                        help="The JID of a MUC to send to",
+                        action='append')
+
     parser.add_argument('-a', '--notification_author',
                         type=str,
                         nargs=1,
@@ -116,7 +136,7 @@ if __name__ == "__main__":
 
     # Hostname
     if args.hostdisplayname is None:
-        host = args.host[0]
+        host = args.hostname[0]
     else:
         host = args.hostdisplayname[0]
 
@@ -144,8 +164,25 @@ if __name__ == "__main__":
         title = f"Host {host} is {state}"
         text = f"{title}:\nOutput: {output}\nTime/Date: {date}"
 
+    # Recipients
+    if args.recipient == None and args.muc == None:
+        print("At least one recipient (may be a MUC) is necessary")
+        os.exit(1)
+
+
+
     #print(args)
-    for i in args.recipient:
-        xmpp = SendMsgBot(recipient=i[0], msg=text, sender_jid=args.sender[0], password=args.password[0])
-        xmpp.connect()
-        xmpp.process(forever=False)
+    if args.muc != None:
+        for i in args.muc:
+            muc = i[0]
+            #print(i)
+            xmpp = SendMsgBot(recipient=i[0], msg=text, sender_jid=args.sender[0], password=args.password[0], muc=muc)
+            xmpp.connect()
+            xmpp.process(forever=False)
+
+    if args.recipient != None:
+        for i in args.recipient:
+            #print(i)
+            xmpp = SendMsgBot(recipient=i[0], msg=text, sender_jid=args.sender[0], password=args.password[0], muc=None)
+            xmpp.connect()
+            xmpp.process(forever=False)
