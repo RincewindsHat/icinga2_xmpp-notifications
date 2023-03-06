@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-import sys
 import slixmpp
 import argparse
-import ssl
 
 
 class SendMsgBot(slixmpp.ClientXMPP):
@@ -100,7 +98,7 @@ if __name__ == "__main__":
                         required=True,
                         help="Output of the host/service check")
 
-    parser.add_argument('-e','--servicename',
+    parser.add_argument('-e', '--servicename',
                         type=str,
                         nargs=1,
                         required=False,
@@ -112,7 +110,6 @@ if __name__ == "__main__":
                         help="Display name of the service")
 
     args = parser.parse_args()
-
 
     # Hostname
     if args.hostdisplayname is None:
@@ -129,7 +126,7 @@ if __name__ == "__main__":
     # Output
     output = args.output[0]
 
-    if args.servicename :
+    if args.servicename:
         # Service notification
         if args.servicedisplayname is None:
             service = args.servicename[0]
@@ -144,7 +141,7 @@ if __name__ == "__main__":
         title = f"Host {host} is {state}"
         text = f"{title}:\nOutput: {output}\nTime/Date: {date}"
 
-    #print(args)
+    # print(args)
     for i in args.recipient:
         xmpp = SendMsgBot(recipient=i[0], msg=text, sender_jid=args.sender[0], password=args.password[0])
         xmpp.connect()
